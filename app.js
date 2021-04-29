@@ -1,31 +1,38 @@
 const express = require("express");
 const morgan = require("morgan");
 const main = require("./views/main");
-const layout = require("./views/layout");
-const { db, Page, User } = require('./models');
-
 const app = express();
+const { db, Page, User } = require("./models");
+const wikiRouter = require("./routes/wiki");
+const usersRouter = require("./routes/users");
 
 app.use(morgan("dev"));
 app.use(express.static(__dirname + "/public"));
-app.use(express.urlencoded({extended: false}));
 
-db.authenticate()
-  .then(() => {
-    console.log('connected to the database');
-  })
+// parses url-encoded bodies
+app.use(express.urlencoded({ extended: false }));
 
-app.get("/", (req, res) => {
-    res.send(layout(""));
-})
+db.authenticate().then(() => {
+  console.log("connected to the database");
+});
+
+app.get("/", (req, res, next) => {
+  res.redirect("/wiki");
+  next();
+});
+
+app.use("/wiki", wikiRouter);
+app.use("/users", usersRouter);
 
 const init = async () => {
-    await db.sync({force: true})
+  await db.sync();
+  // {force: true}
+  // this option will drop all tables and then recreate them. So if you had rows of data in your tables, that data will be lost. This is a very good option to run once, right after a change is made to your models, and then you can remove it afterwards. If you leave it there, your database will be dropped and recreated every time your server restarts... which will happen a lot while you are actively developing!
 
-    const PORT = 1337;
-    app.listen(PORT, () => {
-        console.log(`Server started on port ${PORT}`);
-    });
-}
+  const PORT = 3000;
+  app.listen(PORT, () => {
+    console.log(`Server is listening on port ${PORT}!`);
+  });
+};
 
 init();
